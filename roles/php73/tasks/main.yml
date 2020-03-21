@@ -1,0 +1,9 @@
+- name: PHPインストール
+  become_user: root
+  yum:
+    name: ['php73', 'php73-php-mbstring', 'php73-php-mysqlnd', 'php73-php-pdo']
+    enablerepo: remi,remi-php73
+    state: present                          # パッケージがインストールされていなければインストール
+    # php-mbstring: マルチバイト文字列拡張モジュール
+    # php-mysqlnd: MariaDB用ドライバ
+    # php-pdo: PHP Data Objects

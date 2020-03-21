@@ -1,0 +1,4 @@
+db_rootpass: R@inR@in			# DBのrootパスワードを設定
+database_name: wp
+db_username: blessed			# 任意のDBユーザ名を設定
+db_userpass: B0tsR@in			# 任意のDBユーザのパスワードを設定

@@ -1,0 +1,4 @@
+- name: 'yum update'                       # 時間が掛かるので今回のワークショップでは省略
+  yum:
+    name: '*'
+    state: latest                          # パッケージを最新の状態に更新

@@ -1,0 +1,16 @@
+- name: コマンドインストール
+  become_user: root
+  yum:
+    name: tree
+    state: present
+
+- name: ロケール設定済みかを確認
+  shell: "localectl status | grep LANG=ja_JP.utf8"
+  register: locale_check
+  failed_when: locale_check.rc not in [0, 1]
+  changed_when: false
+
+- name: ロケールの変更
+  become_user: root
+  shell: "localectl set-locale LANG=ja_JP.utf8"
+  when: locale_check.rc == 1

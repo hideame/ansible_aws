@@ -1,0 +1,53 @@
+- name: MariaDBインストール
+  become_user: root
+  yum:
+    name: ['mariadb-5.5.64', 'mariadb-server-5.5.64', 'MySQL-python-1.2.5']
+    state: present
+
+#- name: httpプロトコル開放                 # AWSではセキュリティグループで管理
+#  become_user: root
+#  firewalld:
+#    service: http
+#    state: enabled
+#    permanent: true
+
+- name: 各種サービスを再起動し、自動起動を有効化
+  become_user: root
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - httpd
+    - mariadb
+    #- firewalld
+
+- name: ~/.my.cnfを配置(MySQL設定ファイル)
+  template:
+    src: my.cnf.j2
+    dest: ~/.my.cnf
+    mode: 0400
+
+- name: MySQL rootユーザのパスワードを設定
+  mysql_user:
+    name: root
+    password: "{{ db_rootpass }}"
+    check_implicit_admin: yes           # ノンパスでrootログインを試みる
+  no_log: true                          # デバッグモード時にパスワードを表示しない
+
+- name: MySQL DB作成
+  mysql_db:
+    login_user: root
+    login_password: "{{ db_rootpass }}"
+    name: "{{ database_name }}"
+    state: present                          # 存在しない場合のみ作成
+
+- name: MySQLユーザの作成及びDBへの権限付与
+  mysql_user:
+    login_user: root
+    login_password: "{{ db_rootpass }}"
+    name: "{{ db_username }}"
+    password: "{{ db_userpass }}"
+    priv: "{{ database_name }}.*:ALL"
+    state: present
+  no_log: true

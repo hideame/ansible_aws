@@ -1,0 +1,30 @@
+- name: amazon-linux-extras有効化(ruby2.6)済みなら実施しない
+  become_user: root                         # 該当ユーザで実施
+  shell: "amazon-linux-extras | grep ruby2.6 | grep enabled"
+  register: ruby_status_check
+  failed_when: ruby_status_check.rc not in [0, 1]
+  changed_when: false
+
+- name: amazon-linux-extras有効化(ruby2.6)
+  become_user: root
+  shell: "amazon-linux-extras enable ruby2.6"
+  when: ruby_status_check.rc == 1
+
+- name: Rubyインストール
+  become_user: root
+  yum:
+    name: ['ruby', 'ruby-devel', 'gcc-c++']
+    #enablerepo: amzn2extra-ruby2.6
+    # gcc-c++: io-consoleに必要なパッケージ
+    state: present
+
+- name: Ruby Gems インストール
+  gem:
+    name: "{{ item }}"
+    user_install: no                        # システム領域にインストール
+    state: present
+  with_items:
+    - bundler
+    - rake                                  # Serverspecに必要なライブラリ
+    - io-console                            # Serverspecに必要なライブラリ
+    - serverspec                            # サーバ構成テストツール

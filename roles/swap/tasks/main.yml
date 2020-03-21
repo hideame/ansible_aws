@@ -1,0 +1,52 @@
+- name: swapファイルの有無を確認
+  become_user: root
+  stat:
+    path:  "/swapfile"
+  register: swap
+
+- name: swapファイル作成
+  become_user: root
+  shell: "{{ item }}"
+  with_items:
+    - 'dd if=/dev/zero of=/swapfile bs=1M count=1024'
+    - 'mkswap /swapfile'
+    - 'swapon /swapfile'
+  when: not swap.stat.exists
+
+- name: swapファイルのパーミッション変更
+  become_user: root
+  file:
+    path: /swapfile
+    mode: 0600
+  when: not swap.stat.exists
+
+- name: fstab修正済みかを確認
+  shell: "grep /swapfile /etc/fstab"
+  register: fstab_check
+  failed_when: fstab_check.rc not in [0, 1]
+  changed_when: false                              # 変更していないので、changedにならないように制御
+
+- name: fstab修正
+  become_user: root
+  lineinfile: >-
+    dest='/etc/fstab'
+    line='/swapfile                                     swap        swap   default           0   0'
+  when: fstab_check.rc == 1
+
+- name: swappinessの設定済みなら実施しない
+  shell: "grep 'vm.swappiness = 1' /etc/sysctl.conf"
+  register: swappiness_check
+  failed_when: swappiness_check.rc not in [0, 1]
+  changed_when: false
+
+- name: swappinessの設定追記(なるべくswapを使用しない)
+  become_user: root
+  lineinfile: >-
+    dest='/etc/sysctl.conf'
+    line='vm.swappiness = 1'
+  when: swappiness_check.rc == 1
+
+- name: swappinessの再読み込み
+  become_user: root
+  shell: "sysctl -p"
+  when: swappiness_check.rc == 1
