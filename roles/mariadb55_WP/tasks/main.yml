@@ -39,15 +39,15 @@
   mysql_db:
     login_user: root
     login_password: "{{ db_rootpass }}"
-    name: "{{ database_name }}"
+    name: "{{ db_name }}"
     state: present                          # 存在しない場合のみ作成
 
 - name: MySQLユーザの作成及びDBへの権限付与
   mysql_user:
     login_user: root
     login_password: "{{ db_rootpass }}"
-    name: "{{ db_username }}"
-    password: "{{ db_userpass }}"
-    priv: "{{ database_name }}.*:ALL"
+    name: "{{ db_user }}"
+    password: "{{ db_pass }}"
+    priv: "{{ db_name }}.*:ALL"
     state: present
   no_log: true
