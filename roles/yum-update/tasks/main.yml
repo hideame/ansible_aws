@@ -1,4 +1,4 @@
-- name: 'yum update'
+- name: yum update
   yum:
     name: '*'
     state: latest                          # パッケージを最新の状態に更新

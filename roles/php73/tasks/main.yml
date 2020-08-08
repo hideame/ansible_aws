@@ -1,9 +1,15 @@
 - name: PHPインストール
-  become_user: root
   yum:
-    name: ['php73', 'php73-php-mbstring', 'php73-php-mysqlnd', 'php73-php-pdo']
+    name: ['php73-php', 'php73-php-mbstring', 'php73-php-mysqlnd', 'php73-php-pdo']
     enablerepo: remi,remi-php73
     state: present                          # パッケージがインストールされていなければインストール
+    # php73-php: -phpを付与しないとApacheが利用するモジュールが追加されない(/etc/httpd/modules/libphp74.so)★
     # php-mbstring: マルチバイト文字列拡張モジュール
     # php-mysqlnd: MariaDB用ドライバ
     # php-pdo: PHP Data Objects
+
+- name: シンボリックリンク作成
+  file: 
+    src: /opt/remi/php73/root/usr/bin/php
+    dest: /usr/bin/php
+    state: link
