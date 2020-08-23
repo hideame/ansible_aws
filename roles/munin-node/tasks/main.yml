@@ -49,7 +49,7 @@
     marker: ""                            # 追加部分を示すマーカー(空行)
     block: |
       [apache*]
-      env.ports 443
+      env.ports 80 443
   when: apache_check.rc == 1
 
 - name: 拡張情報の取得をON(apache)

@@ -20,7 +20,7 @@
 
 - name: ユーザー認証設定(手動で実施要★)
   debug:
-    msg: htpasswd -m /etc/munin/munin-htpasswd munin
+    msg: htpasswd -c /etc/munin/munin-htpasswd munin
 
 - name: Muninディレクトリ移動済みかを確認
   stat:
@@ -93,7 +93,7 @@
     block: |2
             df._dev_xvda1.warning 60
             df._dev_xvda1.critical 80
-            cpu.user.warning 20               # cpuのuserパラメータが20%を超えたらwarning
+            cpu.user.warning 30               # cpuのuserパラメータが30%を超えたらwarning
             memory.free.warning 50000000:     # メモリの空き容量が50MB以下になったらwarning
   when: disk_check.rc == 1
 
