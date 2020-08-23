@@ -1,0 +1,16 @@
+- name: LAMP+WP環境構築(Amazon Linux 2 (CentOS7))
+  hosts: web02
+  become: yes                   # ユーザ変更を許可
+  roles:
+    - yum-update
+    - repository
+    - swap
+    - common
+    - apache24
+    - php73
+    - mariadb55_WP
+    - serverspec
+    - wordpress
+    - munin-server
+    - munin-node
+    # - django                    # 作成中
