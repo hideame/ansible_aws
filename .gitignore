@@ -4,3 +4,4 @@
 /roles/wordpress/vars/main.yml
 /roles/munin-node/templates/id_rsa.pub
 /roles/munin-node/vars/main.yml
+/roles/munin-server/vars/main.yml
