@@ -1,0 +1,95 @@
+- name: Mininインストール
+  yum:
+    name: munin
+    state: present
+
+- name: SSH鍵作成
+  user:
+    name: munin
+    generate_ssh_key: yes
+
+# - name: 手動でグラフの作成(初回だけでOK)
+#   become_user: munin
+#   shell: /usr/bin/munin-cron
+
+- name: cron設定実施(※通常は自動作成される)
+  template:
+    src: munin
+    dest: /etc/cron.d/munin
+    force: no
+
+- name: ユーザー認証設定(手動で実施要★)
+  debug:
+    msg: htpasswd -m /etc/munin/munin-htpasswd munin
+
+- name: Muninディレクトリ移動済みかを確認
+  stat:
+    path: /var/www/html/munin
+  register: munin_dir_check
+
+- name: Muninディレクトリ移動
+  shell: mv /var/www/html/munin /var/www/wordpress/
+  when: munin_dir_check.stat.exists == true
+
+- name: 設定ファイルのバックアップ
+  copy:
+    src: /etc/munin/munin.conf
+    dest: /etc/munin/munin.conf.org
+    remote_src: yes
+    force: no
+
+- name: 設定ファイルの編集(localhost)
+  lineinfile:
+    dest: /etc/munin/munin.conf
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+    backrefs: yes                             # マッチしなかった場合もEOFに追記しない
+  with_items:
+  - regexp: '#htmldir   /var/www/html/munin'
+    line: 'htmldir   /var/www/wordpress/munin'
+  - regexp: '# \[localhost\]'
+    line: '[localhost]'
+  - regexp: '^#       address 127\.0\.0\.1'
+    line: '      address 127.0.0.1'
+  - regexp: '^#       use_node_name yes'
+    line: '      use_node_name yes'
+
+- name: メール設定済みなら実施しない
+  shell: grep '# メール設定' /etc/munin/munin.conf
+  register: mail_check
+  failed_when: mail_check.rc not in [0, 1]
+  changed_when: false
+
+- name: メール設定
+  blockinfile:
+    dest: /etc/munin/munin.conf
+    insertbefore: '#contact.anotheruser.command'  # この文字列の前に追加
+    marker: '# メール設定'                        # 追加部分を示すマーカー
+    block: |-
+      contact.mail.command mail -s "Munin ${var:worst}::${var:group}::${var:host}::${var:plugin}" "{{ email }}"
+      contact.mail.always_send warning critical
+      contact.log.command >> /var/log/munin/alert.log
+  when: mail_check.rc == 1
+
+- name: 監視設定済みなら実施しない
+  shell: grep '# 監視設定' /etc/munin/munin.conf
+  register: disk_check
+  failed_when: disk_check.rc not in [0, 1]
+  changed_when: false
+
+- name: 監視設定
+  blockinfile:
+    dest: /etc/munin/munin.conf
+    insertafter: '\[localhost\]'             # この文字列の後に追加
+    marker: '# 監視設定'                      # 追加部分を示すマーカー
+    block: |2
+            df._dev_xvda1.warning 60
+            df._dev_xvda1.critical 80
+            cpu.user.warning 10               # cpuのuserパラメータが10%を超えたらwarning
+            memory.free.warning 100000000:    # メモリの空き容量が100MB以下になったらwarning
+  when: disk_check.rc == 1
+
+- name: httpdをリロード
+  service:
+    name: httpd
+    state: reloaded

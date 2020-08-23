@@ -3,7 +3,7 @@
     name: httpd
     state: present
 
-- name: 各種サービスを再起動し、自動起動を有効化
+- name: httpdサービスを再起動し、自動起動を有効化
   service:
     name: httpd
     state: restarted

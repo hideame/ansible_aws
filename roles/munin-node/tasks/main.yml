@@ -1,0 +1,142 @@
+#- name: muninポート開放                 # AWSではセキュリティグループで管理
+#  firewalld:
+#    port: 4949/tcp
+#    state: enabled
+#    permanent: true
+
+- name: Minin-nodeインストール
+  yum:
+    name: munin-node
+    state: present
+
+- name: 公開鍵の配置
+  become_user: munin
+  template:
+    src: id_rsa.pub
+    dest: ~/.ssh/authorized_keys
+    mode: 0600
+
+- name: 設定ファイルを編集(ホスト名設定)
+  replace:
+    dest: /etc/munin/munin-node.conf
+    regexp:  '^#host_name localhost.localdomain'
+    replace: "host_name {{ hostname }}"
+
+- name: 設定ファイルを編集済みなら実施しない(MuninサーバIP設定)
+  shell: grep '# muninサーバのIPを追記' /etc/munin/munin-node.conf
+  register: munin_check
+  failed_when: munin_check.rc not in [0, 1]
+  changed_when: false
+
+- name: 設定ファイルを編集(MuninサーバIP設定)
+  blockinfile:
+    dest: /etc/munin/munin-node.conf
+    insertbefore: '^allow \^127'          # この文字列の前に追加
+    marker: '# muninサーバのIPを追記'      # 追加部分を示すマーカー
+    block: allow ^"{{ munin_server_RegExp }}"$
+  when: munin_check.rc == 1
+
+- name: 監視設定済みなら実施しない(apache)
+  shell: grep '^\[apache' /etc/munin/plugin-conf.d/munin-node
+  register: apache_check
+  failed_when: apache_check.rc not in [0, 1]
+  changed_when: false
+
+- name: 監視設定(apache)
+  blockinfile:
+    dest: /etc/munin/plugin-conf.d/munin-node
+    insertafter: EOF                      # ファイルの末尾に追加
+    marker: ""                            # 追加部分を示すマーカー(空行)
+    block: |
+      [apache*]
+      env.ports 443
+  when: apache_check.rc == 1
+
+- name: 拡張情報の取得をON(apache)
+  template:
+    src: status.conf
+    dest: /etc/httpd/conf.d/status.conf
+    force: no
+
+# - name: 監視設定済みなら実施しない(mysql)
+#   shell: grep '^\[mysql' /etc/munin/plugin-conf.d/munin-node
+#   register: mysql_check
+#   failed_when: mysql_check.rc not in [0, 1]
+#   changed_when: false
+
+# - name: 監視設定(mysql)
+#   blockinfile:
+#     dest: /etc/munin/plugin-conf.d/munin-node
+#     insertafter: EOF                      # ファイルの末尾に追加
+#     marker: ""                            # 追加部分を示すマーカー(空行)
+#     block: |
+#       [mysql*]
+#       env.mysqlconnection DBI:mysql:mysql;host=127.0.0.1;port=3306
+#       env.mysqlopts -u "{{ db_user }}" --password="{{ db_pass }}"
+#   when: mysql_check.rc == 1
+
+- name: Apacheの監視
+  file: 
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  with_items:
+    - src: /usr/share/munin/plugins/apache_accesses
+      dest: /etc/munin/plugins/apache_accesses
+    - src: /usr/share/munin/plugins/apache_processes
+      dest: /etc/munin/plugins/apache_processes
+    - src: /usr/share/munin/plugins/apache_volume
+      dest: /etc/munin/plugins/apache_volume
+
+- name: MySQLの監視
+  file: 
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    state: link
+  with_items:
+    - src: /usr/share/munin/plugins/mysql_queries
+      dest: /etc/munin/plugins/mysql_queries
+    # - src: /usr/share/munin/plugins/mysql_bytes
+    #   dest: /etc/munin/plugins/mysql_bytes
+    # - src: /usr/share/munin/plugins/mysql_slowqueries
+    #   dest: /etc/munin/plugins/mysql_slowqueries
+    # - src: /usr/share/munin/plugins/mysql_threads
+    #   dest: /etc/munin/plugins/mysql_threads
+
+# - name: SlowQuery監視設定済みなら実施しない(mysql)
+#   shell: grep '# SlowQuery監視' /etc/my.cnf.d/server.cnf
+#   register: SlowQuery_check
+#   failed_when: SlowQuery_check.rc not in [0, 1]
+#   changed_when: false
+
+# - name: SlowQuery監視(mysql)
+#   blockinfile:
+#     dest: /etc/my.cnf.d/server.cnf
+#     insertafter: '\[mariadb\]'                # この文字列の後に追加
+#     marker: '# SlowQuery監視'                # 追加部分を示すマーカー(空行)
+#     block: |
+#       slow_query_log=1
+#       slow_query_log_file=/var/log/mysql-slow.log
+#       long_query_time=1
+#   when: SlowQuery_check.rc == 1
+
+# - name: mysql-slow.logファイルのパーミッション変更
+#   file:
+#     path: /var/log/mysql-slow.log
+#     owner: mysql
+#     group: mysql
+#     state: touch
+
+- name: munin-nodeを起動し、自動起動を有効化
+  service:
+    name: munin-node
+    state: started
+    enabled: yes
+
+- name: 各種サービスの再起動
+  service:
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - httpd
+    - mariadb

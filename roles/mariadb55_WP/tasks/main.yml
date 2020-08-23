@@ -24,6 +24,7 @@
     src: my.cnf.j2
     dest: ~/.my.cnf
     mode: 0400
+    force: no
 
 - name: MySQL rootユーザのパスワードを設定
   mysql_user:

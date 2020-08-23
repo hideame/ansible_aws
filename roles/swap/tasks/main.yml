@@ -24,9 +24,9 @@
   changed_when: false                              # 変更していないので、changedにならないように制御
 
 - name: fstab修正
-  lineinfile: >-
-    dest='/etc/fstab'
-    line='/swapfile                                     swap        swap   default           0   0'
+  lineinfile:
+    dest: /etc/fstab
+    line: '/swapfile                                     swap        swap   default           0   0'
   when: fstab_check.rc == 1
 
 - name: swappinessの設定済みなら実施しない
@@ -36,9 +36,9 @@
   changed_when: false
 
 - name: swappinessの設定追記(なるべくswapを使用しない)
-  lineinfile: >-
-    dest='/etc/sysctl.conf'
-    line='vm.swappiness = 1'
+  lineinfile:
+    dest: /etc/sysctl.conf
+    line: 'vm.swappiness = 1'
   when: swappiness_check.rc == 1
 
 - name: swappinessの再読み込み

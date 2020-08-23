@@ -3,6 +3,9 @@
     name: tree
     state: present
 
+- name: タイムゾーンの変更
+  shell: sudo cp /usr/share/zoneinfo/Japan /etc/localtime
+
 # ロケールは英語のままとする
 # - name: ロケール設定済みかを確認
 #   shell: localectl status | grep LANG=ja_JP.utf8
