@@ -86,7 +86,7 @@
             df._dev_xvda1.warning 60
             df._dev_xvda1.critical 80
             cpu.user.warning 10               # cpuのuserパラメータが10%を超えたらwarning
-            memory.free.warning 100000000:    # メモリの空き容量が100MB以下になったらwarning
+            memory.free.warning 50000000:     # メモリの空き容量が50MB以下になったらwarning
   when: disk_check.rc == 1
 
 - name: httpdをリロード
