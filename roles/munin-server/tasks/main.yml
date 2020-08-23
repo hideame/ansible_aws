@@ -31,6 +31,14 @@
   shell: mv /var/www/html/munin /var/www/wordpress/
   when: munin_dir_check.stat.exists == true
 
+- name: Muninディレクトリオーナー変更
+  file:
+    path: /var/www/wordpress/munin
+    owner: munin
+    group: munin
+    state: directory
+    recurse: yes
+
 - name: 設定ファイルのバックアップ
   copy:
     src: /etc/munin/munin.conf
@@ -85,7 +93,7 @@
     block: |2
             df._dev_xvda1.warning 60
             df._dev_xvda1.critical 80
-            cpu.user.warning 10               # cpuのuserパラメータが10%を超えたらwarning
+            cpu.user.warning 20               # cpuのuserパラメータが20%を超えたらwarning
             memory.free.warning 50000000:     # メモリの空き容量が50MB以下になったらwarning
   when: disk_check.rc == 1
 

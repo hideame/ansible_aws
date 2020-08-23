@@ -1,4 +1,3 @@
-/roles/mariadb55_WP/templates/my.cnf.j2
 /roles/mariadb55_WP/vars/main.yml
 /roles/wordpress/vars/main.yml
 /roles/munin-server/vars/main.yml
